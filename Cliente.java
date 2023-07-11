@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Cliente {
@@ -12,16 +14,19 @@ public class Cliente {
     }
 
     public void start() {
-        try {
+        try (
             // Conecta ao servidor
             Socket socket = new Socket(serverIp, serverPort);
-            System.out.println("Conectado ao servidor: " + serverIp);
-
             // Cria os fluxos de entrada e saída para comunicação com o servidor
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            
+            Scanner scanner = new Scanner(System.in)){;
 
+
+            System.out.println("Conectado ao servidor: " + serverIp);
+            // Inside the start() method
+            
             // Interage com o servidor
-            Scanner scanner = new Scanner(System.in);
             boolean running = true;
 
             while (running) {
@@ -31,8 +36,9 @@ public class Cliente {
                 System.out.println("0. Sair");
 
                 System.out.print("Digite a opção desejada: ");
-                int option = scanner.nextInt();
-                scanner.nextLine(); // Limpar o buffer de entrada
+                if (scanner.hasNextInt()) {
+                    int option = scanner.nextInt();
+                    scanner.nextLine(); // Consume the newline character
 
                 switch (option) {
                     case 1:
@@ -47,11 +53,16 @@ public class Cliente {
                     default:
                         System.out.println("Opção inválida. Tente novamente.");
                 }
+            }else {
+                    System.out.println("Opção inválida. Tente novamente.");
+                    scanner.nextLine(); // Consume the invalid input
+                }
             }
 
             // Fecha o socket do cliente
             socket.close();
         } catch (IOException e) {
+            System.err.println("Erro ao conectar ao servidor: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -62,8 +73,8 @@ public class Cliente {
     
         // Verifica se o arquivo existe
         File file = new File(filePath);
-        if (!file.exists()) {
-            System.out.println("Arquivo não encontrado.");
+        if (!file.exists() || file.isDirectory()) {
+            System.out.println("Arquivo inválido ou não encontrado.");
             return;
         }
     
@@ -88,23 +99,50 @@ public class Cliente {
     
 
     private void listFiles(Socket socket) throws IOException {
-    // Envia o comando de listagem de arquivos para o servidor
-    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-    writer.println("LIST");
-
-    // Recebe a lista de arquivos do servidor
-    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-    String line;
-
-    // Verifica se o servidor retornou uma resposta válida
-    if ((line = reader.readLine()) != null && line.equals("OK")) {
-        // Recebe e exibe a lista de arquivos
-        System.out.println("Arquivos no servidor:");
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
+        try {
+            // Cria uma nova conexão com o servidor
+            Socket newSocket = new Socket(serverIp, serverPort);
+            System.out.println("Conectado ao servidor: " + serverIp);
+    
+            // Envia o comando de listagem de arquivos para o servidor
+            PrintWriter writer = new PrintWriter(newSocket.getOutputStream(), true);
+            writer.println("LIST");
+    
+            // Recebe a resposta do servidor
+            BufferedReader reader = new BufferedReader(new InputStreamReader(newSocket.getInputStream()));
+            String line;
+    
+            // Limpa o buffer de entrada
+            while (reader.ready()) {
+                reader.readLine();
+            }
+    
+            // Verifica a resposta do servidor
+            if ((line = reader.readLine()) != null) {
+                if (line.equals("OK")) {
+                    // Recebe e exibe a lista de arquivos
+                    System.out.println("Arquivos no servidor:");
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println(line);
+                    }
+                } else if (line.equals("EMPTY")) {
+                    System.out.println("Não há arquivos no servidor.");
+                } else {
+                    System.out.println("Resposta inválida do servidor.");
+                }
+            } else {
+                System.out.println("Falha ao obter a resposta do servidor.");
+            }
+    
+            // Fecha o BufferedReader e o socket do cliente
+            reader.close();
+            newSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    } else {
-        System.out.println("Falha ao obter a lista de arquivos do servidor.");
     }
-    }
+    
+    
+    
+    
 }
