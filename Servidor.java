@@ -1,3 +1,4 @@
+// Classe Servidor
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -27,8 +28,9 @@ public class Servidor {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
 
-                // Inicia uma nova thread para lidar com a conexão do cliente
-                Thread clientThread = new Thread(new Ponte(clientSocket, serverDirectory, this));
+                // Cria uma nova instância da classe Ponte para lidar com a conexão do cliente
+                Ponte ponte = new Ponte(clientSocket, serverDirectory);
+                Thread clientThread = new Thread(ponte);
                 clientThread.start();
             }
         } catch (IOException e) {
@@ -48,6 +50,7 @@ public class Servidor {
     public synchronized void adicionarArquivo(String nomeArquivo) {
         arquivos.add(nomeArquivo);
     }
+
 
     public synchronized List<String> listarArquivos() {
         File directory = new File(serverDirectory);

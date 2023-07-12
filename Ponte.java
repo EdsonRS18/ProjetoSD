@@ -1,16 +1,15 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Ponte implements Runnable {
     private Socket clientSocket;
     private String serverDirectory;
-    private Servidor servidor;
 
-    public Ponte(Socket clientSocket, String serverDirectory, Servidor servidor) {
+    public Ponte(Socket clientSocket, String serverDirectory) {
         this.clientSocket = clientSocket;
         this.serverDirectory = serverDirectory;
-        this.servidor = servidor;
     }
 
     @Override
@@ -50,16 +49,13 @@ public class Ponte implements Runnable {
                 inputStream.close();
 
                 System.out.println("Arquivo recebido e salvo com sucesso: " + file.getAbsolutePath());
-
-                // Adiciona o nome do arquivo à lista de arquivos do servidor
-                servidor.adicionarArquivo(fileName);
             } else if (command.equals("LIST")) {
                 // Envia a resposta ao cliente para indicar que o comando foi recebido
                 PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
                 writer.println("OK");
 
                 // Envia a lista de arquivos para o cliente
-                List<String> fileList = servidor.listarArquivos();
+                List<String> fileList = listarArquivos();
 
                 if (!fileList.isEmpty()) {
                     for (String fileName : fileList) {
@@ -68,6 +64,32 @@ public class Ponte implements Runnable {
                 } else {
                     writer.println("EMPTY");
                 }
+            }else if (command.equals("DOWNLOAD")) {
+                // Recebe o nome do arquivo solicitado pelo cliente
+                String fileName = reader.readLine();
+
+                // Verifica se o arquivo existe no diretório do servidor
+                File file = new File(serverDirectory + File.separator + fileName);
+                if (file.exists() && file.isFile()) {
+                    // Envia a resposta ao cliente indicando que o arquivo foi encontrado
+                    PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+                    writer.println("OK");
+
+                    // Envia o conteúdo do arquivo para o cliente
+                    FileInputStream fileInputStream = new FileInputStream(file);
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+
+                    while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                        clientSocket.getOutputStream().write(buffer, 0, bytesRead);
+                    }
+
+                    fileInputStream.close();
+                } else {
+                    // Envia a resposta ao cliente indicando que o arquivo não foi encontrado
+                    PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+                    writer.println("NOT_FOUND");
+                }
             }
 
             // Fecha o socket do cliente
@@ -75,5 +97,21 @@ public class Ponte implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private List<String> listarArquivos() {
+        File directory = new File(serverDirectory);
+        File[] files = directory.listFiles();
+        List<String> fileList = new ArrayList<>();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && file.getName().toLowerCase().endsWith(".txt")) {
+                    fileList.add(file.getName());
+                }
+            }
+        }
+
+        return fileList;
     }
 }
