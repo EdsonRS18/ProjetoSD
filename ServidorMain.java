@@ -1,7 +1,26 @@
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+
 public class ServidorMain {
+    private static final int PORT = 5000;
+
     public static void main(String[] args) {
-        String serverDirectory = "C:/Users/edson/OneDrive/Documentos/vs-code/facul/sd/projetoSD"; // Replace with the desired server directory
-        Servidor servidor = new Servidor(serverDirectory);
-        servidor.start();
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server is listening on port " + PORT);
+
+            while (true) {
+                Socket socket = serverSocket.accept();
+                System.out.println("Client connected: " + socket.getInetAddress());
+
+                // Cria uma nova instância de ClientHandler para cada cliente conectado
+                ClientHandler clientHandler = new ClientHandler(socket);
+                clientHandler.start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+  
 }
