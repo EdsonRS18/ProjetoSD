@@ -15,7 +15,7 @@ public class ServidorMain {
                 System.out.println("Client connected: " + socket.getInetAddress());
 
                 // Cria uma nova instância de ClientHandler para cada cliente conectado
-                ClientHandler clientHandler = new ClientHandler(socket);
+                Ponte clientHandler = new Ponte(socket);
                 clientHandler.start();
             }
         } catch (IOException e) {
