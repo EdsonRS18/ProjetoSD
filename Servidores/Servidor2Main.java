@@ -10,11 +10,11 @@ public class Servidor2Main {
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Servidor2 na porta " + PORT);
+            System.out.println("Server 2 is listening on port " + PORT);
 
             while (true) {
                 Socket socket = serverSocket.accept();
-                System.out.println("cliente conectado: " + socket.getInetAddress());
+                System.out.println("Client connected: " + socket.getInetAddress());
 
                 // Cria uma nova instância de ClientHandler para cada cliente conectado
                 Ponte clientHandler = new Ponte(socket);
