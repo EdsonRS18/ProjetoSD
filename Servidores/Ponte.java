@@ -1,3 +1,5 @@
+package Servidores;
+
 import java.io.*;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -8,6 +10,11 @@ class Ponte extends Thread {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
+    private static final String SERVIDOR1_IP = "192.168.0.1"; // IP do Servidor1
+    private static final int SERVIDOR1_PORTA = 5000; // Porta do Servidor1
+    private static final String SERVIDOR2_IP = "192.168.0.2"; // IP do Servidor2
+    private static final int SERVIDOR2_PORTA = 8000; // Porta do Servidor2
+
 
     public Ponte(Socket socket) {
         this.socket = socket;
@@ -31,6 +38,13 @@ class Ponte extends Thread {
                     long fileSize = dataInputStream.readLong();
 
                     saveFile(fileName, fileSize);
+                    if (socket.getInetAddress().getHostAddress().equals(SERVIDOR1_IP)) {
+                        replicateFile(fileName, SERVIDOR2_IP, SERVIDOR2_PORTA);
+                    } else if (socket.getInetAddress().getHostAddress().equals(SERVIDOR2_IP)) {
+                        replicateFile(fileName, SERVIDOR1_IP, SERVIDOR1_PORTA);
+                    }
+                } else if (request.equals("LIST")) {
+                    sendFileList();
                 } else if (request.equals("LIST")) {
                     sendFileList();
                 } else if (request.equals("DOWNLOAD")) {
@@ -49,7 +63,7 @@ class Ponte extends Thread {
 
     private void saveFile(String fileName, long fileSize) throws IOException {
         FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-    
+
         int bytes;
         byte[] buffer = new byte[4 * 1024];
         long bytesRemaining = fileSize;
@@ -57,7 +71,7 @@ class Ponte extends Thread {
             fileOutputStream.write(buffer, 0, bytes);
             bytesRemaining -= bytes;
         }
-    
+
         fileOutputStream.close();
         System.out.println("Arquivo recebido: " + fileName);
     
@@ -91,7 +105,7 @@ class Ponte extends Thread {
     }
 
     private void sendFileList() throws IOException {
-        File directory = new File("C:/Users/edson/OneDrive/Documentos/vs-code/facul/sd/projetoS"); // Substitua pelo caminho real do diretório no servidor
+        File directory = new File("C:/Users/edson/OneDrive/Documentos/vs-code/facul/sd/projetoD/repositorioS1"); // Substitua pelo caminho real do diretório no servidor
 
         List<String> fileList = new ArrayList<>();
         if (directory.exists() && directory.isDirectory()) {
@@ -118,7 +132,7 @@ class Ponte extends Thread {
         File file = new File(fileName);
 
         if (file.exists() && file.isFile()) {
-            dataOutputStream.writeUTF("FILE_FOUND");
+            dataOutputStream.writeUTF("ARQUIVO NAO ENCONTRADO");
             dataOutputStream.writeLong(file.length());
 
             FileInputStream fileInputStream = new FileInputStream(file);
@@ -132,7 +146,36 @@ class Ponte extends Thread {
             fileInputStream.close();
             System.out.println("Arquivo enviado: " + fileName);
         } else {
-            dataOutputStream.writeUTF("FILE_NOT_FOUND");
+            dataOutputStream.writeUTF("ARQUIVO NAO ENCONTRADO");
+        }
+    }
+
+    private void replicateFile(String fileName, String targetServerIP, int targetServerPort) {
+        try {
+            Socket replicationSocket = new Socket(targetServerIP, targetServerPort);
+            DataOutputStream replicationOutputStream = new DataOutputStream(replicationSocket.getOutputStream());
+
+            replicationOutputStream.writeUTF("UPLOAD");
+            replicationOutputStream.writeUTF(fileName);
+
+            File file = new File(fileName);
+            long fileSize = file.length();
+            replicationOutputStream.writeLong(fileSize);
+
+            FileInputStream fileInputStream = new FileInputStream(file);
+            byte[] buffer = new byte[4 * 1024];
+            int bytesRead;
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                replicationOutputStream.write(buffer, 0, bytesRead);
+            }
+
+            fileInputStream.close();
+            replicationOutputStream.close();
+            replicationSocket.close();
+
+            System.out.println("Arquivo replicado para o servidor: " + targetServerIP + ":" + targetServerPort);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

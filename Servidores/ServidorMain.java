@@ -1,3 +1,5 @@
+package Servidores;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -8,11 +10,11 @@ public class ServidorMain {
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server is listening on port " + PORT);
+            System.out.println("Servidor aberto na porta " + PORT);
 
             while (true) {
                 Socket socket = serverSocket.accept();
-                System.out.println("Client connected: " + socket.getInetAddress());
+                System.out.println("Cliente conectado " + socket.getInetAddress());
 
                 // Cria uma nova instância de ClientHandler para cada cliente conectado
                 Ponte clientHandler = new Ponte(socket);
