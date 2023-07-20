@@ -7,7 +7,7 @@ import java.util.Scanner;
 public class Cliente {
     private static DataOutputStream dataOutputStream = null;
     private static DataInputStream dataInputStream = null;
-//""C:/Users/edson/OneDrive/Documentos/vs-code/facul/sd/a.txt""
+//"C:/Users/edson/OneDrive/Documentos/teste.txt
     public static void main(String[] args) {
         try (Socket socket = new Socket("192.168.0.6", 5000)) {
             dataInputStream = new DataInputStream(socket.getInputStream());

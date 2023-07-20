@@ -4,13 +4,17 @@ import java.io.*;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+
 import java.util.List;
+
 
 class Ponte extends Thread {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-
+    private String server2Address = "192.168.0.6";
+    private int server2Port = 5000;
+    
     public Ponte(Socket socket) {
         this.socket = socket;
         try {
@@ -26,32 +30,46 @@ class Ponte extends Thread {
         try {
             boolean running = true;
             while (running) {
-                String request = dataInputStream.readUTF();
+                try {
+                    String request = dataInputStream.readUTF();
 
-                if (request.equals("UPLOAD")) {
-                    String fileName = dataInputStream.readUTF();
-                    long fileSize = dataInputStream.readLong();
+                    if (request.equals("UPLOAD")) {
+                        String fileName = dataInputStream.readUTF();
+                        long fileSize = dataInputStream.readLong();
 
-                    saveFile(fileName, fileSize);
-                } else if (request.equals("LIST")) {
-                    sendFileList();
-                } else if (request.equals("DOWNLOAD")) {
-                    String fileName = dataInputStream.readUTF();
-                    sendFile(fileName);
-                } else if (request.equals("EXIT")) {
+                        saveFile(fileName, fileSize);
+
+                        // Replicate the file to Server 1
+                        replicateFile(fileName);
+                    } else if (request.equals("LIST")) {
+                        sendFileList();
+                    } else if (request.equals("DOWNLOAD")) {
+                        String fileName = dataInputStream.readUTF();
+                        sendFile(fileName);
+                    } else if (request.equals("EXIT")) {
+                        running = false;
+                    } else if (request.equals("CHECK_EXISTENCE")) {
+                        String fileName = dataInputStream.readUTF();
+                        checkFileExistence(fileName);
+                    }
+                } catch (EOFException e) {
+                    // Client disconnected unexpectedly
+                    System.err.println("Client disconnected unexpectedly.");
                     running = false;
                 }
             }
+    
+            socket.close();
 
             socket.close();
-        } catch (IOException e) {
+            }catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void saveFile(String fileName, long fileSize) throws IOException {
         FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-    
+
         int bytes;
         byte[] buffer = new byte[4 * 1024];
         long bytesRemaining = fileSize;
@@ -59,12 +77,11 @@ class Ponte extends Thread {
             fileOutputStream.write(buffer, 0, bytes);
             bytesRemaining -= bytes;
         }
-    
-        fileOutputStream.close();
-        System.out.println("Arquivo recebido: " + fileName);
-    
 
-        // Calcular e exibir o hash do arquivo
+        fileOutputStream.close();
+        System.out.println("File received: " + fileName);
+
+        // Calculate and display the hash of the file
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             FileInputStream fileInputStream = new FileInputStream(fileName);
@@ -76,7 +93,7 @@ class Ponte extends Thread {
 
             byte[] hashBytes = digest.digest();
             String hash = bytesToHex(hashBytes);
-            System.out.println("Hash do arquivo: " + hash);
+            System.out.println("File hash: " + hash);
 
             fileInputStream.close();
         } catch (Exception e) {
@@ -93,24 +110,22 @@ class Ponte extends Thread {
     }
 
     private void sendFileList() throws IOException {
-        File directory = new File("C:/Users/edson/OneDrive/Documentos/vs-code/facul/sd/projetoD"); // Substitua pelo caminho real do diretório no servidor
-
+        String workingDir = System.getProperty("user.dir");
+        File directory = new File(workingDir);
+        File[] files = directory.listFiles();
+    
         List<String> fileList = new ArrayList<>();
-        if (directory.exists() && directory.isDirectory()) {
-            File[] files = directory.listFiles();
-
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isFile()) {
-                        fileList.add(file.getName());
-                    }
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    fileList.add(file.getName());
                 }
             }
         }
-
+    
         dataOutputStream.writeUTF("FILE_LIST");
         dataOutputStream.writeInt(fileList.size());
-
+    
         for (String fileName : fileList) {
             dataOutputStream.writeUTF(fileName);
         }
@@ -132,9 +147,47 @@ class Ponte extends Thread {
             }
 
             fileInputStream.close();
-            System.out.println("Arquivo enviado: " + fileName);
+            System.out.println("File sent: " + fileName);
         } else {
             dataOutputStream.writeUTF("FILE_NOT_FOUND");
         }
     }
+
+    private void replicateFile(String fileName) {
+        try {
+            Socket server2Socket = new Socket(server2Address, server2Port);
+            DataOutputStream server2OutputStream = new DataOutputStream(server2Socket.getOutputStream());
+
+            File file = new File(fileName);
+            if (file.exists() && file.isFile()) {
+                server2OutputStream.writeUTF("UPLOAD");
+                server2OutputStream.writeUTF(fileName);
+                server2OutputStream.writeLong(file.length());
+
+                FileInputStream fileInputStream = new FileInputStream(file);
+                int bytes;
+                byte[] buffer = new byte[4 * 1024];
+                while ((bytes = fileInputStream.read(buffer)) != -1) {
+                    server2OutputStream.write(buffer, 0, bytes);
+                }
+                fileInputStream.close();
+            }
+
+            server2Socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    
+
+    private void checkFileExistence(String fileName) throws IOException {
+        File file = new File(fileName);
+        if (file.exists() && file.isFile()) {
+            dataOutputStream.writeUTF("FILE_FOUND");
+        } else {
+            dataOutputStream.writeUTF("FILE_NOT_FOUND");
+        }
+    }
+
 }
