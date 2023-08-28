@@ -1,9 +1,10 @@
 package Usuarios;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class Funcao_List {
+public class FuncaoList {
     public static void listFilesOnServer(DataInputStream dataInputStream, DataOutputStream dataOutputStream) throws IOException {
         dataOutputStream.writeUTF("LIST");
 
