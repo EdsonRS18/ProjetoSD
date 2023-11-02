@@ -1,14 +1,14 @@
-package Usuarios;
+package Usuarios.Funcoes;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.Socket;
+import java.net.DatagramSocket;
 
 
 public class Funcao_Upload {
-    public static void uploadFile(Socket socket, String filePath, DataInputStream dataInputStream,DataOutputStream dataOutputStream) throws IOException {
+    public static void uploadFile(DatagramSocket multicastSocket, String filePath, DataInputStream dataInputStream,DataOutputStream dataOutputStream) throws IOException {
         
         int bytes;
         File file = new File(filePath);
