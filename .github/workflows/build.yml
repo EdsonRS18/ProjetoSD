@@ -1,6 +1,5 @@
 name: Build and Analyze Java Project with SonarQube
 
-# Define quando o workflow será executado
 on:
   push:
     branches:
@@ -14,28 +13,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Pega o código do repositório
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # 2️⃣ Configura JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3️⃣ Cria pasta bin e compila todos os arquivos Java
       - name: Compile Java files
         run: |
           mkdir -p bin
           javac -d bin $(find middleware aplicacao -name "*.java")
 
-      # 4️⃣ Roda o SonarQube Scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          host-url: ${{ secrets.SONAR_HOST_URL }}
-          token: ${{ secrets.SONAR_TOKEN }}
+          entryPoint: sonar-scanner
+          args: >
+            -Dsonar.projectKey=SEU_PROJECT_KEY
