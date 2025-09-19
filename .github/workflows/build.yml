@@ -1,4 +1,4 @@
-name: Build and Analyze Java Project with SonarQube
+name: SonarCloud Analysis
 
 on:
   push:
@@ -9,14 +9,11 @@ on:
       - main
 
 jobs:
-  sonar:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v3
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -29,12 +26,11 @@ jobs:
           mkdir -p bin
           javac -d bin $(find middleware aplicacao -name "*.java")
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         with:
-          entryPoint: sonar-scanner
-          args: >
-            -Dsonar.projectKey=SEU_PROJECT_KEY
+          organization: edsonrs18
+          projectKey: EdsonRS18_ProjetoSD
+          projectName: teste
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
