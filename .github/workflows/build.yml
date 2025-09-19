@@ -27,10 +27,8 @@ jobs:
           javac -d bin $(find middleware aplicacao -name "*.java")
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
+        uses: sonarsource/sonarcloud-github-action@v2
         with:
-          organization: edsonrs18
-          projectKey: EdsonRS18_ProjetoSD
-          projectName: teste
+          projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
